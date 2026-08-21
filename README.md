@@ -32,16 +32,10 @@ brew services start fn-switcher
 ```bash
 git clone https://github.com/imetlenko/fn-switcher.git
 cd fn-switcher
-make build
-sudo make install
+make install
 ```
 
-### Manual
-
-```bash
-go build -o fn-switcher
-sudo cp fn-switcher /usr/local/bin/
-```
+This builds the binary, wraps it in a `FnSwitcher.app` bundle, copies it to `/Applications/`, and creates a CLI symlink at `/usr/local/bin/fn-switcher`.
 
 For autostart, see the [Autostart](#autostart) section below.
 
@@ -51,7 +45,8 @@ For autostart, see the [Autostart](#autostart) section below.
 
 **System Settings → Privacy & Security → Accessibility**
 
-Add `/usr/local/bin/fn-switcher` (click "+", then Cmd+Shift+G to enter path).
+- **Homebrew:** Add `/opt/homebrew/opt/fn-switcher/FnSwitcher.app` (click "+", then Cmd+Shift+G to enter path)
+- **From source:** Add `/Applications/FnSwitcher.app`
 
 ### 2. Disable system Fn popup
 
@@ -153,7 +148,7 @@ Or manually create `~/Library/LaunchAgents/com.user.fnswitcher.plist`:
     <string>com.user.fnswitcher</string>
     <key>ProgramArguments</key>
     <array>
-        <string>/usr/local/bin/fn-switcher</string>
+        <string>/Applications/FnSwitcher.app/Contents/MacOS/fn-switcher</string>
     </array>
     <key>RunAtLoad</key>
     <true/>
@@ -171,7 +166,7 @@ launchctl load ~/Library/LaunchAgents/com.user.fnswitcher.plist
 
 ### Option 2: Login Items
 
-System Settings → General → Login Items → add fn-switcher
+System Settings → General → Login Items → add FnSwitcher.app
 
 ## Uninstall
 
@@ -193,7 +188,8 @@ make uninstall
 ```bash
 launchctl unload ~/Library/LaunchAgents/com.user.fnswitcher.plist
 rm ~/Library/LaunchAgents/com.user.fnswitcher.plist
-sudo rm /usr/local/bin/fn-switcher
+sudo rm -rf /Applications/FnSwitcher.app
+sudo rm -f /usr/local/bin/fn-switcher
 ```
 
 ## Custom layouts
@@ -255,7 +251,7 @@ Each Fn press cycles through all layouts in order. Triggers instantly on key dow
 
 ### "Failed to create event tap"
 
-Add fn-switcher to Accessibility in System Settings.
+Add FnSwitcher.app to Accessibility in System Settings (see [Setup](#setup)).
 
 ### Fn key still shows popup
 
@@ -267,7 +263,7 @@ This is a known macOS quirk. The switch happens fast but sometimes the first key
 
 ### Not working after macOS update
 
-Re-add fn-switcher to Accessibility permissions — macOS sometimes resets them.
+Re-add FnSwitcher.app to Accessibility permissions — macOS sometimes resets them.
 
 ## Security
 

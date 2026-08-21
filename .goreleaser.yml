@@ -28,26 +28,51 @@ brews:
     description: Instantly switches keyboard layout when you press the Fn (Globe) key — without the annoying macOS popup.
     license: MIT
     service: |
-      run [opt_bin/"fn-switcher"]
+      run [opt_prefix/"FnSwitcher.app/Contents/MacOS/fn-switcher"]
       keep_alive true
       log_path var/"log/fn-switcher.log"
       error_log_path var/"log/fn-switcher.error.log"
     test: |
       system "#{bin}/fn-switcher", "--version"
     install: |
-      bin.install "fn-switcher"
+      app_macos = prefix/"FnSwitcher.app/Contents/MacOS"
+      app_macos.mkpath
+      app_macos.install "fn-switcher"
+      (prefix/"FnSwitcher.app/Contents/Info.plist").write <<~PLIST
+        <?xml version="1.0" encoding="UTF-8"?>
+        <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+        <plist version="1.0">
+        <dict>
+          <key>CFBundleIdentifier</key>
+          <string>com.user.fnswitcher</string>
+          <key>CFBundleName</key>
+          <string>FnSwitcher</string>
+          <key>CFBundleDisplayName</key>
+          <string>Fn Switcher</string>
+          <key>CFBundleExecutable</key>
+          <string>fn-switcher</string>
+          <key>CFBundlePackageType</key>
+          <string>APPL</string>
+          <key>CFBundleVersion</key>
+          <string>#{version}</string>
+          <key>LSUIElement</key>
+          <true/>
+        </dict>
+        </plist>
+      PLIST
+      bin.install_symlink prefix/"FnSwitcher.app/Contents/MacOS/fn-switcher"
     caveats: |
       After installing, remove the quarantine attribute:
-        sudo xattr -dr com.apple.quarantine #{opt_bin}/fn-switcher
+        sudo xattr -dr com.apple.quarantine #{opt_prefix}/FnSwitcher.app
 
       fn-switcher requires Accessibility permissions:
         System Settings → Privacy & Security → Accessibility
-        Add: #{opt_bin}/fn-switcher
+        Add: #{opt_prefix}/FnSwitcher.app
 
       To start fn-switcher now and on login:
         brew services start fn-switcher
 
       To configure layouts and mode, create a config file:
         mkdir -p ~/.config/fn-switcher
-        echo '{"layouts": ["ABC", "Russian"], "cycle": true}' > ~/.config/fn-switcher/config.json
+        echo '{"layouts": ["ABC", "Russian"]}' > ~/.config/fn-switcher/config.json
     skip_upload: auto
