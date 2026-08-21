@@ -10,8 +10,18 @@ package main
 #include <string.h>
 
 extern void goKeyCallback(int keyCode, int flags);
+extern void goTapDisabled(int byUserInput);
+
+static CFMachPortRef eventTap = NULL;
 
 static CGEventRef eventCallback(CGEventTapProxy proxy, CGEventType type, CGEventRef event, void *refcon) {
+    // macOS disables the tap if the callback is slow (watchdog) or on user-input
+    // protection; without re-enabling it here the tap stays dead forever.
+    if (type == kCGEventTapDisabledByTimeout || type == kCGEventTapDisabledByUserInput) {
+        if (eventTap) CGEventTapEnable(eventTap, true);
+        goTapDisabled(type == kCGEventTapDisabledByUserInput ? 1 : 0);
+        return event;
+    }
     if (type == kCGEventFlagsChanged) {
         CGEventFlags flags = CGEventGetFlags(event);
         int keyCode = (int)CGEventGetIntegerValueField(event, kCGKeyboardEventKeycode);
@@ -35,6 +45,7 @@ static void startEventTap() {
         printf("Failed to create event tap. Check Accessibility permissions.\n");
         return;
     }
+    eventTap = tap;
 
     CFRunLoopSourceRef source = CFMachPortCreateRunLoopSource(kCFAllocatorDefault, tap, 0);
     CFRunLoopAddSource(CFRunLoopGetCurrent(), source, kCFRunLoopCommonModes);
@@ -168,6 +179,7 @@ var (
 	layouts            []string
 	previousLayout     string
 	cycleMode          bool
+	switchRequests     = make(chan bool, 16)
 )
 
 //export goKeyCallback
@@ -179,15 +191,15 @@ func goKeyCallback(keyCode C.int, flags C.int) {
 
 	if fnNow && !fnPressed {
 		if cycleMode {
-			switchInputSource(false)
+			requestSwitch(false)
 		} else {
 			fnTimer = time.AfterFunc(longPressDuration, func() {
-				switchInputSource(true)
+				requestSwitch(true)
 			})
 		}
 	} else if !fnNow && fnPressed && !cycleMode {
 		if fnTimer != nil && fnTimer.Stop() {
-			switchInputSource(false)
+			requestSwitch(false)
 		}
 	}
 	fnPressed = fnNow
@@ -203,18 +215,48 @@ func goKeyCallback(keyCode C.int, flags C.int) {
 
 	if shiftOptionNow && !shiftOptionPressed {
 		if cycleMode {
-			switchInputSource(false)
+			requestSwitch(false)
 		} else {
 			shiftOptionTimer = time.AfterFunc(longPressDuration, func() {
-				switchInputSource(true)
+				requestSwitch(true)
 			})
 		}
 	} else if !shiftOptionNow && shiftOptionPressed && !cycleMode {
 		if shiftOptionTimer != nil && shiftOptionTimer.Stop() {
-			switchInputSource(false)
+			requestSwitch(false)
 		}
 	}
 	shiftOptionPressed = shiftOptionNow
+}
+
+//export goTapDisabled
+func goTapDisabled(byUserInput C.int) {
+	reason := "timeout"
+	if byUserInput != 0 {
+		reason = "user input"
+	}
+	fmt.Printf("[%s] Event tap disabled by %s; re-enabled\n", timestamp(), reason)
+}
+
+func timestamp() string {
+	return time.Now().Format("2006-01-02 15:04:05")
+}
+
+// requestSwitch queues a layout switch for the worker goroutine. The event tap
+// callback must return fast — a slow callback trips the macOS watchdog, which
+// disables the tap — so TIS calls never run on the tap thread. A single worker
+// also serializes access to previousLayout.
+func requestSwitch(longPress bool) {
+	select {
+	case switchRequests <- longPress:
+	default:
+	}
+}
+
+func switchWorker() {
+	for longPress := range switchRequests {
+		switchInputSource(longPress)
+	}
 }
 
 func getCurrentLayout() string {
@@ -416,7 +458,7 @@ func switchInputSource(longPress bool) {
 	}
 
 	if err := setLayout(target); err != nil {
-		fmt.Fprintln(os.Stderr, "Error:", err)
+		fmt.Fprintf(os.Stderr, "[%s] Error: %v\n", timestamp(), err)
 	}
 }
 
@@ -622,7 +664,7 @@ func main() {
 	if buildDate != "" {
 		fmt.Printf(" built %s", buildDate)
 	}
-	fmt.Println(" started")
+	fmt.Printf(" started at %s\n", timestamp())
 	if configPath != "" {
 		fmt.Printf("Config: %s\n", configPath)
 	}
@@ -640,5 +682,6 @@ func main() {
 		fmt.Println("Press Fn to switch. Ctrl+C to exit.")
 	}
 
+	go switchWorker()
 	C.startEventTap()
 }
