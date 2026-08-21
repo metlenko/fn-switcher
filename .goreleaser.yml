@@ -77,6 +77,12 @@ brews:
       system "codesign", "--force", "--sign", "-", "--identifier", "com.user.fnswitcher", prefix/"FnSwitcher.app"
       bin.install_symlink prefix/"FnSwitcher.app/Contents/MacOS/fn-switcher"
     caveats: |
+      Upgrading from 0.2.x? The binary now lives inside an .app bundle, so
+      Accessibility must be granted once more:
+        System Settings → Privacy & Security → Accessibility
+        Remove the old fn-switcher entry, then add: #{opt_prefix}/FnSwitcher.app
+        Then run: brew services restart fn-switcher
+
       After installing, remove the quarantine attribute:
         sudo xattr -dr com.apple.quarantine #{opt_prefix}/FnSwitcher.app
 

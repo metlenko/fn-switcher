@@ -14,7 +14,7 @@ This tool:
 
 ## Requirements
 
-- macOS 10.13+ (tested on Sonoma)
+- macOS 11+ (tested on Sonoma)
 - Go 1.22+ (for building)
 - Xcode Command Line Tools (`xcode-select --install`)
 
@@ -23,14 +23,14 @@ This tool:
 ### Homebrew (Recommended)
 
 ```bash
-brew install imetlenko/apps/fn-switcher
+brew install metlenko/apps/fn-switcher
 brew services start fn-switcher
 ```
 
 ### From source
 
 ```bash
-git clone https://github.com/imetlenko/fn-switcher.git
+git clone https://github.com/metlenko/fn-switcher.git
 cd fn-switcher
 make install
 ```
@@ -38,6 +38,17 @@ make install
 This builds the binary, wraps it in a `FnSwitcher.app` bundle, copies it to `/Applications/`, and creates a CLI symlink at `/usr/local/bin/fn-switcher`.
 
 For autostart, see the [Autostart](#autostart) section below.
+
+### Upgrading from 0.2.x
+
+Since 0.3.0 the binary ships inside a `FnSwitcher.app` bundle, so Accessibility must be granted once more:
+
+```bash
+brew update && brew upgrade fn-switcher
+brew services restart fn-switcher
+```
+
+Then in **System Settings → Privacy & Security → Accessibility**: remove the old `fn-switcher` entry and add `/opt/homebrew/opt/fn-switcher/FnSwitcher.app`. Future upgrades keep the permission — this is a one-time step.
 
 ## Setup
 
