@@ -6,6 +6,12 @@ builds:
     binary: fn-switcher
     env:
       - CGO_ENABLED=1
+      # Without an explicit deployment target the binary inherits the runner's
+      # SDK minimum (macos-latest = macOS 26+), and LaunchServices/TCC refuse
+      # the .app on older systems with kLSIncompatibleSystemVersionErr.
+      - MACOSX_DEPLOYMENT_TARGET=11.0
+      - CGO_CFLAGS=-mmacosx-version-min=11.0
+      - CGO_LDFLAGS=-mmacosx-version-min=11.0
     goos:
       - darwin
     goarch:
@@ -21,10 +27,10 @@ archives:
 
 brews:
   - repository:
-      owner: imetlenko
+      owner: metlenko
       name: homebrew-apps
     directory: Formula
-    homepage: https://github.com/imetlenko/fn-switcher
+    homepage: https://github.com/metlenko/fn-switcher
     description: Instantly switches keyboard layout when you press the Fn (Globe) key — without the annoying macOS popup.
     license: MIT
     service: |
@@ -55,11 +61,20 @@ brews:
           <string>APPL</string>
           <key>CFBundleVersion</key>
           <string>#{version}</string>
+          <key>CFBundleShortVersionString</key>
+          <string>#{version}</string>
+          <key>CFBundleInfoDictionaryVersion</key>
+          <string>6.0</string>
+          <key>LSMinimumSystemVersion</key>
+          <string>11.0</string>
           <key>LSUIElement</key>
           <true/>
         </dict>
         </plist>
       PLIST
+      # Replace the Go linker's ad-hoc "a.out" signature with a proper bundle
+      # signature — TCC/System Settings silently refuse linker-signed bundles.
+      system "codesign", "--force", "--sign", "-", "--identifier", "com.user.fnswitcher", prefix/"FnSwitcher.app"
       bin.install_symlink prefix/"FnSwitcher.app/Contents/MacOS/fn-switcher"
     caveats: |
       After installing, remove the quarantine attribute:

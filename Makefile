@@ -29,10 +29,15 @@ app: build
 	@echo '    <string>fn-switcher</string>' >> $(APP_CONTENTS)/Info.plist
 	@echo '    <key>CFBundlePackageType</key>' >> $(APP_CONTENTS)/Info.plist
 	@echo '    <string>APPL</string>' >> $(APP_CONTENTS)/Info.plist
+	@echo '    <key>CFBundleInfoDictionaryVersion</key>' >> $(APP_CONTENTS)/Info.plist
+	@echo '    <string>6.0</string>' >> $(APP_CONTENTS)/Info.plist
+	@echo '    <key>LSMinimumSystemVersion</key>' >> $(APP_CONTENTS)/Info.plist
+	@echo '    <string>11.0</string>' >> $(APP_CONTENTS)/Info.plist
 	@echo '    <key>LSUIElement</key>' >> $(APP_CONTENTS)/Info.plist
 	@echo '    <true/>' >> $(APP_CONTENTS)/Info.plist
 	@echo '</dict>' >> $(APP_CONTENTS)/Info.plist
 	@echo '</plist>' >> $(APP_CONTENTS)/Info.plist
+	@codesign --force --sign - --identifier com.user.fnswitcher $(APP_NAME)
 	@echo "Created $(APP_NAME)"
 
 install: app
